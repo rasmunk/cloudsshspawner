@@ -229,15 +229,14 @@ class SSHSpawner(Spawner):
             retcode = result.exit_status
 
         if stdout != b"":
-            ip, port = stdout.split()
-            port = int(port)
-            self.log.debug("ip={} port={}".format(ip, port))
+            port = int(stdout)
+            self.log.debug("ip={} port={}".format(self.remote_host, port))
         else:
             ip, port = None, None
             self.log.error("Failed to get a remote port")
             self.log.error("STDERR={}".format(stderr))
             self.log.debug("EXITSTATUS={}".format(retcode))
-        return (ip, port)
+        return (self.remote_host, port)
 
     # FIXME add docstring
     async def exec_notebook(self, command):
