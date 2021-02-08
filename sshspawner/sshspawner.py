@@ -94,7 +94,7 @@ class SSHSpawner(Spawner):
     )
 
     # Options to specify whether the Spawner should enabel the client to create a backward ssh tunnnel
-    ssh_forward_tunnel = Bool(default=False, config=True)
+    # ssh_forward_tunnel = Bool(default=False, config=True)
 
     ssh_forward_path = Unicode("~/.ssh", config=True)
 
@@ -178,37 +178,37 @@ class SSHSpawner(Spawner):
                 ) as conn:
                     await asyncssh.scp(files, (conn, self.resource_path))
 
-        if self.ssh_forward_tunnel:
-            with TemporaryDirectory() as td:
-                local_resource_path = td
-                ssh_forward_credentials_paths = self.stage_ssh_keys(
-                    self.ssh_forward_credentials_paths, local_resource_path
-                )
+        # if self.ssh_forward_tunnel:
+        #     with TemporaryDirectory() as td:
+        #         local_resource_path = td
+        #         ssh_forward_credentials_paths = self.stage_ssh_keys(
+        #             self.ssh_forward_credentials_paths, local_resource_path
+        #         )
 
-                # create resource path dir in user's home on remote
-                async with asyncssh.connect(
-                    self.remote_ip,
-                    username=username,
-                    client_keys=[(k, c)],
-                    known_hosts=None,
-                ) as conn:
-                    mkdir_cmd = "mkdir -p {path} 2>/dev/null".format(
-                        path=self.ssh_forward_path
-                    )
-                    result = await conn.run(mkdir_cmd)
+        #         # create resource path dir in user's home on remote
+        #         async with asyncssh.connect(
+        #             self.remote_ip,
+        #             username=username,
+        #             client_keys=[(k, c)],
+        #             known_hosts=None,
+        #         ) as conn:
+        #             mkdir_cmd = "mkdir -p {path} 2>/dev/null".format(
+        #                 path=self.ssh_forward_path
+        #             )
+        #             result = await conn.run(mkdir_cmd)
 
-                # copy files
-                files = [
-                    os.path.join(local_resource_path, f)
-                    for f in os.listdir(local_resource_path)
-                ]
-                async with asyncssh.connect(
-                    self.remote_ip,
-                    username=username,
-                    client_keys=[(k, c)],
-                    known_hosts=None,
-                ) as conn:
-                    await asyncssh.scp(files, (conn, self.ssh_forward_path))
+        #         # copy files
+        #         files = [
+        #             os.path.join(local_resource_path, f)
+        #             for f in os.listdir(local_resource_path)
+        #         ]
+        #         async with asyncssh.connect(
+        #             self.remote_ip,
+        #             username=username,
+        #             client_keys=[(k, c)],
+        #             known_hosts=None,
+        #         ) as conn:
+        #             await asyncssh.scp(files, (conn, self.ssh_forward_path))
 
         if self.hub_api_url != "":
             old = "--hub-api-url={}".format(self.hub.api_url)
