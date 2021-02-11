@@ -1,13 +1,10 @@
-import asyncio, asyncssh
+import asyncssh
 import os
 from textwrap import dedent
-import warnings
 import random
-import pwd
 import shutil
 from tempfile import TemporaryDirectory
-
-from traitlets import Bool, Dict, Unicode, Integer, List, observe, default
+from traitlets import Bool, Dict, Unicode, Integer, List, observe
 from jupyterhub.spawner import Spawner
 
 
@@ -93,12 +90,19 @@ class SSHSpawner(Spawner):
         config=True,
     )
 
-    # Options to specify whether the Spawner should enabel the client to create a backward ssh tunnnel
-    # ssh_forward_tunnel = Bool(default=False, config=True)
+    # Options to specify whether the Spawner should enabel the client to
+    # create a backward ssh tunnnel to the JupyterHub instance
+    ssh_backtunnel_client = Bool(default=False, config=True)
 
-    ssh_forward_path = Unicode("~/.ssh", config=True)
+    # Where on the client the backtunnel ssh keys should be placed
+    ssh_backtunnel_client_path = Unicode("~/.ssh", config=True)
 
-    ssh_forward_credentials_paths = Dict({}, config=True)
+    ssh_forward_credentials_paths = Dict(
+        {"private_key_file": "", "public_key_file": ""},
+        config=True,
+        help="The path to the credentials that should be "
+        "copied to the Notebook during the spawn",
+    )
 
     def load_state(self, state):
         """Restore state about ssh-spawned server after a hub restart.
@@ -129,7 +133,6 @@ class SSHSpawner(Spawner):
 
     async def start(self):
         """Start single-user server on remote host."""
-
         username = self.user.name
         kf = self.ssh_keyfile.format(username=username)
         cf = kf + "-cert.pub"
@@ -150,7 +153,6 @@ class SSHSpawner(Spawner):
         if self.user.settings["internal_ssl"]:
             with TemporaryDirectory() as td:
                 local_resource_path = td
-
                 self.cert_paths = self.stage_certs(self.cert_paths, local_resource_path)
 
                 # create resource path dir in user's home on remote
@@ -163,7 +165,7 @@ class SSHSpawner(Spawner):
                     mkdir_cmd = "mkdir -p {path} 2>/dev/null".format(
                         path=self.resource_path
                     )
-                    result = await conn.run(mkdir_cmd)
+                    _ = await conn.run(mkdir_cmd)
 
                 # copy files
                 files = [
@@ -178,37 +180,37 @@ class SSHSpawner(Spawner):
                 ) as conn:
                     await asyncssh.scp(files, (conn, self.resource_path))
 
-        # if self.ssh_forward_tunnel:
-        #     with TemporaryDirectory() as td:
-        #         local_resource_path = td
-        #         ssh_forward_credentials_paths = self.stage_ssh_keys(
-        #             self.ssh_forward_credentials_paths, local_resource_path
-        #         )
+        if self.ssh_backtunnel_client:
+            with TemporaryDirectory() as td:
+                local_resource_path = td
+                ssh_forward_credentials_paths = self.stage_ssh_keys(
+                    self.ssh_forward_credentials_paths, local_resource_path
+                )
 
-        #         # create resource path dir in user's home on remote
-        #         async with asyncssh.connect(
-        #             self.remote_ip,
-        #             username=username,
-        #             client_keys=[(k, c)],
-        #             known_hosts=None,
-        #         ) as conn:
-        #             mkdir_cmd = "mkdir -p {path} 2>/dev/null".format(
-        #                 path=self.ssh_forward_path
-        #             )
-        #             result = await conn.run(mkdir_cmd)
+                # create resource path dir in user's home on remote
+                async with asyncssh.connect(
+                    self.remote_ip,
+                    username=username,
+                    client_keys=[(k, c)],
+                    known_hosts=None,
+                ) as conn:
+                    mkdir_cmd = "mkdir -p {path} 2>/dev/null".format(
+                        path=self.ssh_backtunnel_client_path
+                    )
+                    _ = await conn.run(mkdir_cmd)
 
-        #         # copy files
-        #         files = [
-        #             os.path.join(local_resource_path, f)
-        #             for f in os.listdir(local_resource_path)
-        #         ]
-        #         async with asyncssh.connect(
-        #             self.remote_ip,
-        #             username=username,
-        #             client_keys=[(k, c)],
-        #             known_hosts=None,
-        #         ) as conn:
-        #             await asyncssh.scp(files, (conn, self.ssh_forward_path))
+                # copy files
+                files = [
+                    os.path.join(local_resource_path, f)
+                    for f in os.listdir(local_resource_path)
+                ]
+                async with asyncssh.connect(
+                    self.remote_ip,
+                    username=username,
+                    client_keys=[(k, c)],
+                    known_hosts=None,
+                ) as conn:
+                    await asyncssh.scp(files, (conn, self.ssh_backtunnel_client_path))
 
         if self.hub_api_url != "":
             old = "--hub-api-url={}".format(self.hub.api_url)
@@ -254,7 +256,7 @@ class SSHSpawner(Spawner):
 
     async def stop(self, now=False):
         """Stop single-user server process for the current user."""
-        alive = await self.remote_signal(15)
+        _ = await self.remote_signal(15)
         self.clear_state()
 
     def get_remote_user(self, username):
@@ -263,7 +265,8 @@ class SSHSpawner(Spawner):
 
     async def choose_remote_host(self):
         """
-        Given the list of possible nodes from which to choose, make the choice of which should be the remote host.
+        Given the list of possible nodes from which to choose,
+        make the choice of which should be the remote host.
         """
         remote_host = random.choice(self.remote_hosts)
         return remote_host
@@ -349,7 +352,7 @@ class SSHSpawner(Spawner):
         ) as conn:
             result = await conn.run("bash -s", stdin=run_script)
             stdout = result.stdout
-            stderr = result.stderr
+            _ = result.stderr
             retcode = result.exit_status
 
         self.log.debug("exec_notebook status={}".format(retcode))

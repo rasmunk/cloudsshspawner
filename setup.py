@@ -30,8 +30,10 @@ setup_args = dict(
                    notebooks over SSH""",
     long_description="""Spawn Jupyter notebooks on a remote node over SSH. Supports
                         SSH Key based authentication.""",
-    author="Shane Canon, Shreyas Cholia, William Krinsman, Kelly L. Rowland, Rollin Thomas",
-    author_email="scanon@lbl.gov, scholia@lbl.gov, krinsman@berkeley.edu, kellyrowland@lbl.gov, rcthomas@lbl.gov",
+    author="Shane Canon, Shreyas Cholia,"
+    " William Krinsman, Kelly L. Rowland, Rollin Thomas",
+    author_email="scanon@lbl.gov, scholia@lbl.gov, krinsman@berkeley.edu,"
+    " kellyrowland@lbl.gov, rcthomas@lbl.gov",
     url="http://www.nersc.gov",
     license="BSD",
     platforms="Linux, Mac OS X",
