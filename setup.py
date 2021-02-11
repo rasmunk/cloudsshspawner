@@ -28,8 +28,8 @@ with open(os.path.join(cur_dir, "version.py")) as f:
     exec(f.read(), {}, version_ns)
 
 
-long_description = open("README.md").read()
-setup_args = dict(
+long_description = open("README.rst").read()
+setup(
     name="sshspawner",
     version=version_ns["__version__"],
     description="""SSH Spawner: A custom spawner for Jupyterhub to spawn
