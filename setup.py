@@ -7,61 +7,54 @@
 # ----------------------------------------------------------------------------
 # Minimal Python version sanity check (from IPython/Jupyterhub)
 # ----------------------------------------------------------------------------
-from __future__ import print_function
-
 import os
-import sys
+from setuptools import setup, find_packages
 
-from distutils.core import setup
+cur_dir = os.path.abspath(os.path.dirname(__file__))
 
-pjoin = os.path.join
-here = os.path.abspath(os.path.dirname(__file__))
 
-# Get the current package version.
+def read(path):
+    with open(path, "r") as _file:
+        return _file.read()
+
+
+def read_req(name):
+    path = os.path.join(cur_dir, name)
+    return [req.strip() for req in read(path).splitlines() if req.strip()]
+
+
 version_ns = {}
-with open(pjoin(here, "version.py")) as f:
+with open(os.path.join(cur_dir, "version.py")) as f:
     exec(f.read(), {}, version_ns)
 
+
+long_description = open("README.md").read()
 setup_args = dict(
     name="sshspawner",
-    packages=["sshspawner"],
     version=version_ns["__version__"],
     description="""SSH Spawner: A custom spawner for Jupyterhub to spawn
                    notebooks over SSH""",
-    long_description="""Spawn Jupyter notebooks on a remote node over SSH. Supports
-                        SSH Key based authentication.""",
-    author="Shane Canon, Shreyas Cholia,"
-    " William Krinsman, Kelly L. Rowland, Rollin Thomas",
-    author_email="scanon@lbl.gov, scholia@lbl.gov, krinsman@berkeley.edu,"
-    " kellyrowland@lbl.gov, rcthomas@lbl.gov",
-    url="http://www.nersc.gov",
+    long_description=long_description,
+    author="Rasmus Munk",
+    author_email="munk1@live.dk",
+    packages=find_packages(),
+    url="https://github.com/ucphhpc/sshspawner.git",
     license="BSD",
     platforms="Linux, Mac OS X",
-    keywords=["Interactive", "Interpreter", "Shell", "Web"],
+    keywords=["Interactive", "Interpreter", "Shell", "Web", "JupyterHub", "Spawner"],
+    install_requires=read_req("requirements.txt"),
+    extras_require={
+        "test": read_req("requirements-test.txt"),
+        "dev": read_req("requirements-dev.txt"),
+    },
     classifiers=[
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
 )
-
-# setuptools requirements
-if "setuptools" in sys.modules:
-    setup_args["install_requires"] = install_requires = []
-    with open("requirements.txt") as f:
-        for line in f.readlines():
-            req = line.strip()
-            if not req or req.startswith(("-e", "#")):
-                continue
-            install_requires.append(req)
-
-
-def main():
-    setup(**setup_args)
-
-
-if __name__ == "__main__":
-    main()

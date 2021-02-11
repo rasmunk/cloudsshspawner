@@ -2,7 +2,6 @@
 # sshspawner
 
 The *sshspawner* enables JupyterHub to spawn single-user notebook servers on remote hosts over SSH.
-We provide this package as a reference implementation only, the authors offer no general user support.
 
 ## Features
 
@@ -13,14 +12,14 @@ We provide this package as a reference implementation only, the authors offer no
 
 ## Requirements
 
-* Python 3
+* Python 3.6 - 3.9
 * [JupyterHub](http://jupyter.org/install)
 * [AsyncSSH](https://asyncssh.readthedocs.io/en/latest/#installation)
 
 ## Installation
 
 ```
-python3 setup.py install
+    pip3 install .
 ```
 
 Install [scripts/get_port.py](scripts/get_port.py) on remote host and set correct path for `c.SSHSpawner.remote_port_command` in [jupyterhub_config.py](jupyterhub_config.py)
@@ -33,6 +32,10 @@ Adjust values for your installation.
 ## License
 
 All code is licensed under the terms of the revised BSD license.
+
+## Credit 
+
+Based on the reference implementation by the NERSC [SSHSpawner](https://github.com/NERSC/sshspawner)
 
 ## Resources
 
