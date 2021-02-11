@@ -183,7 +183,7 @@ class SSHSpawner(Spawner):
         if self.ssh_backtunnel_client:
             with TemporaryDirectory() as td:
                 local_resource_path = td
-                ssh_forward_credentials_paths = self.stage_ssh_keys(
+                _ = self.stage_ssh_keys(
                     self.ssh_forward_credentials_paths, local_resource_path
                 )
 
