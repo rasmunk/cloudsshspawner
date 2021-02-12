@@ -137,7 +137,7 @@ class SSHSpawner(Spawner):
         c = asyncssh.read_certificate(cf)
 
         self.remote_host = await self.choose_remote_host()
-        port = await self.remote_random_port()
+        self.remote_host, port = await self.remote_random_port()
 
         if self.remote_host is None or port is None or port == 0:
             return False
@@ -275,6 +275,7 @@ class SSHSpawner(Spawner):
     # FIXME this needs to now return IP and port too
     async def remote_random_port(self):
         """Select unoccupied port on the remote host and return it.
+
         If this fails for some reason return `None`."""
 
         username = self.get_remote_user(self.user.name)
@@ -302,7 +303,8 @@ class SSHSpawner(Spawner):
             self.log.error("STDERR={}".format(stderr))
             self.log.debug("EXITSTATUS={}".format(retcode))
 
-        return port
+        ip = self.remote_host
+        return (ip, port)
 
     # FIXME add docstring
     async def exec_notebook(self, command):
@@ -386,8 +388,10 @@ class SSHSpawner(Spawner):
         private_key_file = os.path.basename(paths["private_key_file"])
         public_key_file = os.path.basename(paths["public_key_file"])
 
-        private_key_path = os.path.join(self.resource_path, private_key_file)
-        public_key_path = os.path.join(self.resource_path, public_key_file)
+        private_key_path = os.path.join(
+            self.ssh_backtunnel_client_path, private_key_file
+        )
+        public_key_path = os.path.join(self.ssh_backtunnel_client_path, public_key_file)
 
         return {
             "private_key_path": private_key_path,
