@@ -1,3 +1,4 @@
 cryptography==3.2.1
 asyncssh
+traitlets==4.3.3
 jupyterhub
