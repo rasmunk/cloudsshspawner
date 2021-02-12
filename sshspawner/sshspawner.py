@@ -24,9 +24,6 @@ class SSHSpawner(Spawner):
     # The spawner now chooses the value of remote_host.
     remote_host = Unicode("remote_host", help="SSH remote host to spawn sessions on")
 
-    # This is a external remote IP, let the server listen on all interfaces if we fwant
-    remote_ip = Unicode("remote_ip", help="IP on remote side")
-
     remote_port = Unicode("22", help="SSH remote port number", config=True)
 
     ssh_command = Unicode("/usr/bin/ssh", help="Actual SSH command", config=True)
@@ -111,8 +108,8 @@ class SSHSpawner(Spawner):
         super().load_state(state)
         if "pid" in state:
             self.pid = state["pid"]
-        if "remote_ip" in state:
-            self.remote_ip = state["remote_ip"]
+        if "remote_host" in state:
+            self.remote_host = state["remote_host"]
 
     def get_state(self):
         """Save state needed to restore this spawner instance after hub restore.
@@ -121,14 +118,14 @@ class SSHSpawner(Spawner):
         state = super().get_state()
         if self.pid:
             state["pid"] = self.pid
-        if self.remote_ip:
-            state["remote_ip"] = self.remote_ip
+        if self.remote_host:
+            state["remote_host"] = self.remote_host
         return state
 
     def clear_state(self):
         """Clear stored state about this spawner (ip, pid)"""
         super().clear_state()
-        self.remote_ip = "remote_ip"
+        self.remote_host = "remote_host"
         self.pid = 0
 
     async def start(self):
@@ -140,9 +137,9 @@ class SSHSpawner(Spawner):
         c = asyncssh.read_certificate(cf)
 
         self.remote_host = await self.choose_remote_host()
-        self.remote_ip, port = await self.remote_random_port()
+        port = await self.remote_random_port()
 
-        if self.remote_ip is None or port is None or port == 0:
+        if self.remote_host is None or port is None or port == 0:
             return False
         self.remote_port = str(port)
         cmd = []
@@ -157,7 +154,7 @@ class SSHSpawner(Spawner):
 
                 # create resource path dir in user's home on remote
                 async with asyncssh.connect(
-                    self.remote_ip,
+                    self.remote_host,
                     username=username,
                     client_keys=[(k, c)],
                     known_hosts=None,
@@ -173,7 +170,7 @@ class SSHSpawner(Spawner):
                     for f in os.listdir(local_resource_path)
                 ]
                 async with asyncssh.connect(
-                    self.remote_ip,
+                    self.remote_host,
                     username=username,
                     client_keys=[(k, c)],
                     known_hosts=None,
@@ -189,7 +186,7 @@ class SSHSpawner(Spawner):
 
                 # create resource path dir in user's home on remote
                 async with asyncssh.connect(
-                    self.remote_ip,
+                    self.remote_host,
                     username=username,
                     client_keys=[(k, c)],
                     known_hosts=None,
@@ -205,7 +202,7 @@ class SSHSpawner(Spawner):
                     for f in os.listdir(local_resource_path)
                 ]
                 async with asyncssh.connect(
-                    self.remote_ip,
+                    self.remote_host,
                     username=username,
                     client_keys=[(k, c)],
                     known_hosts=None,
@@ -231,7 +228,7 @@ class SSHSpawner(Spawner):
         if self.pid < 0:
             return None
 
-        return (self.remote_ip, port)
+        return (self.remote_host, port)
 
     async def poll(self):
         """Poll ssh-spawned process to see if it is still running.
@@ -275,14 +272,9 @@ class SSHSpawner(Spawner):
     def _log_remote_host(self, change):
         self.log.debug("Remote host was set to %s." % self.remote_host)
 
-    @observe("remote_ip")
-    def _log_remote_ip(self, change):
-        self.log.debug("Remote IP was set to %s." % self.remote_ip)
-
     # FIXME this needs to now return IP and port too
     async def remote_random_port(self):
         """Select unoccupied port on the remote host and return it.
-
         If this fails for some reason return `None`."""
 
         username = self.get_remote_user(self.user.name)
@@ -310,8 +302,7 @@ class SSHSpawner(Spawner):
             self.log.error("STDERR={}".format(stderr))
             self.log.debug("EXITSTATUS={}".format(retcode))
 
-        ip = self.remote_host
-        return (ip, port)
+        return port
 
     # FIXME add docstring
     async def exec_notebook(self, command):
@@ -348,7 +339,7 @@ class SSHSpawner(Spawner):
                 self.log.debug(run_script + " was written as:\n" + f.read())
 
         async with asyncssh.connect(
-            self.remote_ip, username=username, client_keys=[(k, c)], known_hosts=None
+            self.remote_host, username=username, client_keys=[(k, c)], known_hosts=None
         ) as conn:
             result = await conn.run("bash -s", stdin=run_script)
             stdout = result.stdout
@@ -375,7 +366,7 @@ class SSHSpawner(Spawner):
         command = "kill -s %s %d < /dev/null" % (sig, self.pid)
 
         async with asyncssh.connect(
-            self.remote_ip, username=username, client_keys=[(k, c)], known_hosts=None
+            self.remote_host, username=username, client_keys=[(k, c)], known_hosts=None
         ) as conn:
             result = await conn.run(command)
             stdout = result.stdout
@@ -395,8 +386,8 @@ class SSHSpawner(Spawner):
         private_key_file = os.path.basename(paths["private_key_file"])
         public_key_file = os.path.basename(paths["public_key_file"])
 
-        private_key_path = os.path.join(self.ssh_forward_path, private_key_file)
-        public_key_path = os.path.join(self.ssh_forward_path, public_key_file)
+        private_key_path = os.path.join(self.resource_path, private_key_file)
+        public_key_path = os.path.join(self.resource_path, public_key_file)
 
         return {
             "private_key_path": private_key_path,
