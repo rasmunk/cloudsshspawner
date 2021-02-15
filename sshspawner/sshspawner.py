@@ -337,7 +337,10 @@ class SSHSpawner(Spawner):
 
         bash_script_str += "touch .ssh_backtunnel.log\n"
         bash_script_str += "chmod 600 .ssh_backtunnel.log\n"
-        bash_script_str += "%s < /dev/null >> .ssh_backtunnel.log 2>&1 & pid=$!\n" % ssh_backtunnel_command
+        bash_script_str += (
+            "%s < /dev/null >> .ssh_backtunnel.log 2>&1 & pid=$!\n"
+            % ssh_backtunnel_command
+        )
         bash_script_str += "echo $pid\n"
 
         run_script = "/tmp/ssh_backtunnel_{}_run.sh".format(self.user.name)
@@ -441,6 +444,10 @@ class SSHSpawner(Spawner):
         return retcode == 0
 
     def stage_ssh_keys(self, paths, dest):
+        # Expand paths if they are relative to the user
+        paths["private_key_file"] = os.path.expanduser(paths["private_key_file"])
+        paths["public_key_file"] = os.path.expanduser(paths["public_key_file"])
+
         shutil.copy(paths["private_key_file"], dest)
         shutil.copy(paths["public_key_file"], dest)
 
@@ -458,6 +465,11 @@ class SSHSpawner(Spawner):
         }
 
     def stage_certs(self, paths, dest):
+        # Expand paths if they are relative to the user
+        paths["keyfile"] = os.path.expanduser(paths["keyfile"])
+        paths["certfile"] = os.path.expanduser(paths["certfile"])
+        paths["cafile"] = os.path.expanduser(paths["cafile"])
+
         shutil.move(paths["keyfile"], dest)
         shutil.move(paths["certfile"], dest)
         shutil.copy(paths["cafile"], dest)
