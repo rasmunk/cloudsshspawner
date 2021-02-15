@@ -333,11 +333,11 @@ class SSHSpawner(Spawner):
         #     # item is a (key, value) tuple
         #     # command = ('export %s=%s;' % item) + command
         #     bash_script_str += "export %s=%s\n" % item
-        # bash_script_str += "unset XDG_RUNTIME_DIR\n"
+        bash_script_str += "unset XDG_RUNTIME_DIR\n"
 
-        # bash_script_str += "touch .jupyter.log\n"
-        # bash_script_str += "chmod 600 .jupyter.log\n"
-        bash_script_str += "%s < /dev/null & pid=$!\n" % ssh_backtunnel_command
+        bash_script_str += "touch .ssh_backtunnel.log\n"
+        bash_script_str += "chmod 600 .ssh_backtunnel.log\n"
+        bash_script_str += "%s < /dev/null >> .ssh_backtunnel.log 2>&1 & pid=$!\n" % ssh_backtunnel_command
         bash_script_str += "echo $pid\n"
 
         run_script = "/tmp/ssh_backtunnel_{}_run.sh".format(self.user.name)
