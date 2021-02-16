@@ -48,10 +48,8 @@ class SSHSpawner(Spawner):
 
     hub_public_host = Unicode(
         "",
-        help=dedent(
-            """The public host url of the designated JupyterHub endpoint."""
-        ),
-        config=True
+        help=dedent("""The public host url of the designated JupyterHub endpoint."""),
+        config=True,
     )
 
     # FIXME Fix help, what happens when not set?
@@ -330,7 +328,7 @@ class SSHSpawner(Spawner):
         k = asyncssh.read_private_key(kf)
         c = asyncssh.read_certificate(cf)
 
-        self.log.debug("ssh backtunnel target: {}".format(hub_endpoint))
+        self.log.debug("ssh backtunnel target: {}".format(self.hub_public_host))
         ssh_backtunnel_command = "ssh -L 127.0.0.1:8000:127.0.0.1:8000 {}".format(
             self.hub_public_host
         )
