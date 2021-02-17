@@ -336,10 +336,10 @@ class SSHSpawner(Spawner):
         username = self.get_remote_user(self.user.name)
         bash_script_str = "#!/bin/bash\n"
 
-        # for item in env.items():
-        #     # item is a (key, value) tuple
-        #     # command = ('export %s=%s;' % item) + command
-        #     bash_script_str += "export %s=%s\n" % item
+        for item in env.items():
+            # item is a (key, value) tuple
+            # command = ('export %s=%s;' % item) + command
+            bash_script_str += "export %s=%s\n" % item
         bash_script_str += "unset XDG_RUNTIME_DIR\n"
 
         bash_script_str += "touch .ssh_backtunnel.log\n"
@@ -350,7 +350,7 @@ class SSHSpawner(Spawner):
         )
         bash_script_str += "echo $pid\n"
 
-        run_script = "/tmp/ssh_backtunnel_{}_run.sh".format(self.user.name)
+        run_script = "/tmp/{}_ssh_backtunnel_run.sh".format(self.user.name)
         with open(run_script, "w") as f:
             f.write(bash_script_str)
         if not os.path.isfile(run_script):
