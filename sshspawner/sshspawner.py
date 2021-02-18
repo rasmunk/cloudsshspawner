@@ -1,8 +1,9 @@
 import asyncssh
 import os
-from textwrap import dedent
+import subprocess
 import random
 import shutil
+from textwrap import dedent
 from tempfile import TemporaryDirectory
 from traitlets import Bool, Dict, Unicode, Integer, List, observe
 from jupyterhub.spawner import Spawner
@@ -352,7 +353,7 @@ class SSHSpawner(Spawner):
         # ssh -v -fNT -R 8081:multiplespawner.workers.vcn.oraclevcn.com:8081 -R 8000:127.0.0.1:8000 ras6@130.61.232.102 -i ~/.corc/ssh/ras6_id_rsa
         self.log.debug("ssh remote forward target: {}".format(self.hub_public_host))
         # -R remote_port,local_host:local_port -R remote_port,local_host:local_port remote_user@remoteip -i path_to_rsa_key
-        ssh_backtunnel_command = "ssh -fNT -R {}:{}:{} -R {}:{}:{} {} -i {}".format(
+        ssh_backtunnel_command = "ssh -fNT -R {}:{}:{} -R {}:{}:{} {}@{} -i {}".format(
             self.hub_api_port,
             self.hub_api_interface,
             self.hub_api_port,
