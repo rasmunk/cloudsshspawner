@@ -7,6 +7,7 @@ from textwrap import dedent
 from tempfile import TemporaryDirectory
 from traitlets import Bool, Dict, Unicode, Integer, List, observe
 from jupyterhub.spawner import Spawner
+from sshspawner.io import chmod
 
 
 class SSHSpawner(Spawner):
@@ -381,6 +382,12 @@ class SSHSpawner(Spawner):
         else:
             with open(run_script, "r") as f:
                 self.log.debug(run_script + " was written as:\n" + f.read())
+
+        # Set the executable permission
+        if not chmod(run_script, 0o755):
+            raise Exception(
+                "Failed to set executable permissions on: {}".format(run_script)
+            )
 
         launched = await self.launch_detach_process(run_script)
         if not launched:
