@@ -64,6 +64,17 @@ class SSHSpawner(Spawner):
         config=True,
     )
 
+    hub_activity_url = Unicode(
+        "",
+        help=dedent(
+            """If set, Spawner will configure the target resource to
+            use the specified URL to request the current activity of the spawned
+            Notebook
+            """
+        ),
+        config=True,
+    )
+
     ssh_keyfile = Unicode(
         "~/.ssh/id_rsa",
         help=dedent(
@@ -320,6 +331,7 @@ class SSHSpawner(Spawner):
     async def start_ssh_backtunnel(self):
         env = super(SSHSpawner, self).get_env()
         env["JUPYTERHUB_API_URL"] = self.hub_api_url
+        env["JUPYTERHUB_ACTIVITY_URL"] = self.hub_activity_url
         env["JUPYTERHUB_HOST"] = self.hub_public_host
         env["PATH"] = self.path
 
@@ -381,6 +393,7 @@ class SSHSpawner(Spawner):
 
         env = super(SSHSpawner, self).get_env()
         env["JUPYTERHUB_API_URL"] = self.hub_api_url
+        env["JUPYTERHUB_ACTIVITY_URL"] = self.hub_activity_url
         env["PATH"] = self.path
         username = self.get_remote_user(self.user.name)
         kf = self.ssh_keyfile.format(username=username)
