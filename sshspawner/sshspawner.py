@@ -106,10 +106,10 @@ class SSHSpawner(Spawner):
 
     # Options to specify whether the Spawner should enabel the client to
     # create a backward ssh tunnnel to the JupyterHub instance
-    ssh_backtunnel_client = Bool(default=False, config=True)
+    # ssh_backtunnel_client = Bool(default=False, config=True)
 
     # Where on the client the backtunnel ssh keys should be placed
-    ssh_backtunnel_client_path = Unicode("~/.ssh", config=True)
+    # ssh_backtunnel_client_path = Unicode("~/.ssh", config=True)
 
     ssh_forward_credentials_paths = Dict(
         {"private_key_file": "", "public_key_file": ""},
@@ -194,37 +194,37 @@ class SSHSpawner(Spawner):
                 ) as conn:
                     await asyncssh.scp(files, (conn, self.resource_path))
 
-        if self.ssh_backtunnel_client:
-            with TemporaryDirectory() as td:
-                local_resource_path = td
-                _ = self.stage_ssh_keys(
-                    self.ssh_forward_credentials_paths, local_resource_path
-                )
+        # if self.ssh_backtunnel_client:
+        #     with TemporaryDirectory() as td:
+        #         local_resource_path = td
+        #         _ = self.stage_ssh_keys(
+        #             self.ssh_forward_credentials_paths, local_resource_path
+        #         )
 
-                # create resource path dir in user's home on remote
-                async with asyncssh.connect(
-                    self.remote_host,
-                    username=username,
-                    client_keys=[(k, c)],
-                    known_hosts=None,
-                ) as conn:
-                    mkdir_cmd = "mkdir -p {path} 2>/dev/null".format(
-                        path=self.ssh_backtunnel_client_path
-                    )
-                    _ = await conn.run(mkdir_cmd)
+        #         # create resource path dir in user's home on remote
+        #         async with asyncssh.connect(
+        #             self.remote_host,
+        #             username=username,
+        #             client_keys=[(k, c)],
+        #             known_hosts=None,
+        #         ) as conn:
+        #             mkdir_cmd = "mkdir -p {path} 2>/dev/null".format(
+        #                 path=self.ssh_backtunnel_client_path
+        #             )
+        #             _ = await conn.run(mkdir_cmd)
 
-                # copy files
-                files = [
-                    os.path.join(local_resource_path, f)
-                    for f in os.listdir(local_resource_path)
-                ]
-                async with asyncssh.connect(
-                    self.remote_host,
-                    username=username,
-                    client_keys=[(k, c)],
-                    known_hosts=None,
-                ) as conn:
-                    await asyncssh.scp(files, (conn, self.ssh_backtunnel_client_path))
+        #         # copy files
+        #         files = [
+        #             os.path.join(local_resource_path, f)
+        #             for f in os.listdir(local_resource_path)
+        #         ]
+        #         async with asyncssh.connect(
+        #             self.remote_host,
+        #             username=username,
+        #             client_keys=[(k, c)],
+        #             known_hosts=None,
+        #         ) as conn:
+        #             await asyncssh.scp(files, (conn, self.ssh_backtunnel_client_path))
 
         if self.hub_api_url != "":
             old = "--hub-api-url={}".format(self.hub.api_url)
