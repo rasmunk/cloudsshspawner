@@ -240,8 +240,8 @@ class SSHSpawner(Spawner):
         remote_cmd = " ".join(cmd)
 
         # prepare the ssh_backtunnel
-        ssh_started = await self.start_ssh_backtunnel()
-        self.log.debug("Started SSH Backtunnel: {}".format(ssh_started))
+        # ssh_started = await self.start_ssh_backtunnel()
+        # self.log.debug("Started SSH Backtunnel: {}".format(ssh_started))
 
         self.pid = await self.exec_notebook(remote_cmd)
 
@@ -328,64 +328,64 @@ class SSHSpawner(Spawner):
         ip = self.remote_host
         return (ip, port)
 
-    async def start_ssh_backtunnel(self):
-        env = super(SSHSpawner, self).get_env()
-        env["JUPYTERHUB_API_URL"] = self.hub_api_url
-        env["JUPYTERHUB_ACTIVITY_URL"] = self.hub_activity_url
-        env["JUPYTERHUB_HOST"] = self.hub_public_host
-        env["PATH"] = self.path
+    # async def start_ssh_backtunnel(self):
+    #     env = super(SSHSpawner, self).get_env()
+    #     env["JUPYTERHUB_API_URL"] = self.hub_api_url
+    #     env["JUPYTERHUB_ACTIVITY_URL"] = self.hub_activity_url
+    #     env["JUPYTERHUB_HOST"] = self.hub_public_host
+    #     env["PATH"] = self.path
 
-        kf = self.ssh_keyfile.format(username=self.user.name)
-        cf = kf + "-cert.pub"
-        k = asyncssh.read_private_key(kf)
-        c = asyncssh.read_certificate(cf)
+    #     kf = self.ssh_keyfile.format(username=self.user.name)
+    #     cf = kf + "-cert.pub"
+    #     k = asyncssh.read_private_key(kf)
+    #     c = asyncssh.read_certificate(cf)
 
-        self.log.debug("ssh backtunnel target: {}".format(self.hub_public_host))
-        ssh_backtunnel_command = "ssh -L 127.0.0.1:8000:127.0.0.1:8000 {}".format(
-            self.hub_public_host
-        )
+    #     self.log.debug("ssh backtunnel target: {}".format(self.hub_public_host))
+    #     ssh_backtunnel_command = "ssh -L 127.0.0.1:8000:127.0.0.1:8000 {}".format(
+    #         self.hub_public_host
+    #     )
 
-        username = self.get_remote_user(self.user.name)
-        bash_script_str = "#!/bin/bash\n"
+    #     username = self.get_remote_user(self.user.name)
+    #     bash_script_str = "#!/bin/bash\n"
 
-        for item in env.items():
-            # item is a (key, value) tuple
-            # command = ('export %s=%s;' % item) + command
-            bash_script_str += "export %s=%s\n" % item
-        bash_script_str += "unset XDG_RUNTIME_DIR\n"
+    #     for item in env.items():
+    #         # item is a (key, value) tuple
+    #         # command = ('export %s=%s;' % item) + command
+    #         bash_script_str += "export %s=%s\n" % item
+    #     bash_script_str += "unset XDG_RUNTIME_DIR\n"
 
-        bash_script_str += "touch .ssh_backtunnel.log\n"
-        bash_script_str += "chmod 600 .ssh_backtunnel.log\n"
-        bash_script_str += (
-            "%s < /dev/null >> .ssh_backtunnel.log 2>&1 & pid=$!\n"
-            % ssh_backtunnel_command
-        )
-        bash_script_str += "echo $pid\n"
+    #     bash_script_str += "touch .ssh_backtunnel.log\n"
+    #     bash_script_str += "chmod 600 .ssh_backtunnel.log\n"
+    #     bash_script_str += (
+    #         "%s < /dev/null >> .ssh_backtunnel.log 2>&1 & pid=$!\n"
+    #         % ssh_backtunnel_command
+    #     )
+    #     bash_script_str += "echo $pid\n"
 
-        run_script = "/tmp/{}_ssh_backtunnel_run.sh".format(self.user.name)
-        with open(run_script, "w") as f:
-            f.write(bash_script_str)
-        if not os.path.isfile(run_script):
-            raise Exception("The file " + run_script + "was not created.")
-        else:
-            with open(run_script, "r") as f:
-                self.log.debug(run_script + " was written as:\n" + f.read())
+    #     run_script = "/tmp/{}_ssh_backtunnel_run.sh".format(self.user.name)
+    #     with open(run_script, "w") as f:
+    #         f.write(bash_script_str)
+    #     if not os.path.isfile(run_script):
+    #         raise Exception("The file " + run_script + "was not created.")
+    #     else:
+    #         with open(run_script, "r") as f:
+    #             self.log.debug(run_script + " was written as:\n" + f.read())
 
-        async with asyncssh.connect(
-            self.remote_host, username=username, client_keys=[(k, c)], known_hosts=None
-        ) as conn:
-            result = await conn.run("bash -s", stdin=run_script)
-            stdout = result.stdout
-            _ = result.stderr
-            retcode = result.exit_status
+    #     async with asyncssh.connect(
+    #         self.remote_host, username=username, client_keys=[(k, c)], known_hosts=None
+    #     ) as conn:
+    #         result = await conn.run("bash -s", stdin=run_script)
+    #         stdout = result.stdout
+    #         _ = result.stderr
+    #         retcode = result.exit_status
 
-        self.log.debug("ssh_backtunnel status={}".format(retcode))
-        if stdout != b"":
-            _ = int(stdout)
-        else:
-            return -1
+    #     self.log.debug("ssh_backtunnel status={}".format(retcode))
+    #     if stdout != b"":
+    #         _ = int(stdout)
+    #     else:
+    #         return -1
 
-        return True
+    #     return True
 
     # FIXME add docstring
     async def exec_notebook(self, command):
