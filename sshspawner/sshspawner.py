@@ -64,6 +64,10 @@ class SSHSpawner(Spawner):
         config=True,
     )
 
+    hub_api_port = Unicode("", help=dedent(), config=True)
+
+    hub_api_interface = Unicode("", help=dedent(), config=True)
+
     hub_activity_url = Unicode(
         "",
         help=dedent(
@@ -106,10 +110,10 @@ class SSHSpawner(Spawner):
 
     # Options to specify whether the Spawner should enabel the client to
     # create a backward ssh tunnnel to the JupyterHub instance
-    # ssh_backtunnel_client = Bool(default=False, config=True)
+    ssh_forward_tunnel_client = Bool(default=False, config=True)
 
     # Where on the client the backtunnel ssh keys should be placed
-    # ssh_backtunnel_client_path = Unicode("~/.ssh", config=True)
+    ssh_forward_tunnel_client_path = Unicode("~/.ssh", config=True)
 
     ssh_forward_credentials_paths = Dict(
         {"private_key_file": "", "public_key_file": ""},
@@ -194,37 +198,38 @@ class SSHSpawner(Spawner):
                 ) as conn:
                     await asyncssh.scp(files, (conn, self.resource_path))
 
-        # if self.ssh_backtunnel_client:
-        #     with TemporaryDirectory() as td:
-        #         local_resource_path = td
-        #         _ = self.stage_ssh_keys(
-        #             self.ssh_forward_credentials_paths, local_resource_path
-        #         )
+        if self.ssh_forward_tunnel_client:
+            # Establish an SSH remote forward tunnel
+            with TemporaryDirectory() as td:
+                local_resource_path = td
+                _ = self.stage_ssh_keys(
+                    self.ssh_forward_credentials_paths, local_resource_path
+                )
 
-        #         # create resource path dir in user's home on remote
-        #         async with asyncssh.connect(
-        #             self.remote_host,
-        #             username=username,
-        #             client_keys=[(k, c)],
-        #             known_hosts=None,
-        #         ) as conn:
-        #             mkdir_cmd = "mkdir -p {path} 2>/dev/null".format(
-        #                 path=self.ssh_backtunnel_client_path
-        #             )
-        #             _ = await conn.run(mkdir_cmd)
+                # create resource path dir in user's home on remote
+                # async with asyncssh.connect(
+                #     self.remote_host,
+                #     username=username,
+                #     client_keys=[(k, c)],
+                #     known_hosts=None,
+                # ) as conn:
+                #     mkdir_cmd = "mkdir -p {path} 2>/dev/null".format(
+                #         path=self.ssh_forward_tunnel_client_path
+                #     )
+                #     _ = await conn.run(mkdir_cmd)
 
-        #         # copy files
-        #         files = [
-        #             os.path.join(local_resource_path, f)
-        #             for f in os.listdir(local_resource_path)
-        #         ]
-        #         async with asyncssh.connect(
-        #             self.remote_host,
-        #             username=username,
-        #             client_keys=[(k, c)],
-        #             known_hosts=None,
-        #         ) as conn:
-        #             await asyncssh.scp(files, (conn, self.ssh_backtunnel_client_path))
+                # # copy files
+                # files = [
+                #     os.path.join(local_resource_path, f)
+                #     for f in os.listdir(local_resource_path)
+                # ]
+                # async with asyncssh.connect(
+                #     self.remote_host,
+                #     username=username,
+                #     client_keys=[(k, c)],
+                #     known_hosts=None,
+                # ) as conn:
+                #     await asyncssh.scp(files, (conn, self.ssh_forward_tunnel_client_path))
 
         if self.hub_api_url != "":
             old = "--hub-api-url={}".format(self.hub.api_url)
@@ -328,64 +333,58 @@ class SSHSpawner(Spawner):
         ip = self.remote_host
         return (ip, port)
 
-    # async def start_ssh_backtunnel(self):
-    #     env = super(SSHSpawner, self).get_env()
-    #     env["JUPYTERHUB_API_URL"] = self.hub_api_url
-    #     env["JUPYTERHUB_ACTIVITY_URL"] = self.hub_activity_url
-    #     env["JUPYTERHUB_HOST"] = self.hub_public_host
-    #     env["PATH"] = self.path
+    async def launch_detach_process(self, cmd):
+        # Launches the cmd and detaches is from the python command
+        result = subprocess.run([cmd],)
+        return True
 
-    #     kf = self.ssh_keyfile.format(username=self.user.name)
-    #     cf = kf + "-cert.pub"
-    #     k = asyncssh.read_private_key(kf)
-    #     c = asyncssh.read_certificate(cf)
+    async def start_ssh_remote_forward_session(self):
+        env = super(SSHSpawner, self).get_env()
+        env["JUPYTERHUB_API_URL"] = self.hub_api_url
+        env["JUPYTERHUB_ACTIVITY_URL"] = self.hub_activity_url
+        env["JUPYTERHUB_HOST"] = self.hub_public_host
+        env["PATH"] = self.path
+        kf = self.ssh_keyfile.format(username=self.user.name)
+        cf = kf + "-cert.pub"
+        k = asyncssh.read_private_key(kf)
+        c = asyncssh.read_certificate(cf)
 
-    #     self.log.debug("ssh backtunnel target: {}".format(self.hub_public_host))
-    #     ssh_backtunnel_command = "ssh -L 127.0.0.1:8000:127.0.0.1:8000 {}".format(
-    #         self.hub_public_host
-    #     )
+        # ssh -v -fNT -R 8081:multiplespawner.workers.vcn.oraclevcn.com:8081 -R 8000:127.0.0.1:8000 ras6@130.61.232.102 -i ~/.corc/ssh/ras6_id_rsa
+        self.log.debug("ssh remote forward target: {}".format(self.hub_public_host))
+        # -R remote_port,local_host:local_port -R remote_port,local_host:local_port remote_user@remoteip -i path_to_rsa_key
+        ssh_backtunnel_command = "ssh -fNT -R {}:{}:{} -R {}:{}:{} {} -i {}".format(
+            self.hub_api_port,
+            self.hub_api_interface,
+            self.hub_api_port,
+            self.hub.port,
+            self.hub.ip,
+            self.hub_port,
+            self.user.name,
+            self.remote_host,
+            self.ssh_forward_credentials_paths["private_key_file"],
+        )
 
-    #     username = self.get_remote_user(self.user.name)
-    #     bash_script_str = "#!/bin/bash\n"
+        username = self.get_remote_user(self.user.name)
+        bash_script_str = "#!/bin/bash\n"
+        bash_script_str += (
+            "%s < /dev/null >> .{}_ssh_remote_forward.log 2>&1 & pid=$!\n".format(
+                self.user.name
+            )
+            % ssh_backtunnel_command
+        )
+        run_script = "/tmp/{}_ssh_remote_forward_run.sh".format(self.user.name)
+        with open(run_script, "w") as f:
+            f.write(bash_script_str)
+        if not os.path.isfile(run_script):
+            raise Exception("The file " + run_script + "was not created.")
+        else:
+            with open(run_script, "r") as f:
+                self.log.debug(run_script + " was written as:\n" + f.read())
 
-    #     for item in env.items():
-    #         # item is a (key, value) tuple
-    #         # command = ('export %s=%s;' % item) + command
-    #         bash_script_str += "export %s=%s\n" % item
-    #     bash_script_str += "unset XDG_RUNTIME_DIR\n"
-
-    #     bash_script_str += "touch .ssh_backtunnel.log\n"
-    #     bash_script_str += "chmod 600 .ssh_backtunnel.log\n"
-    #     bash_script_str += (
-    #         "%s < /dev/null >> .ssh_backtunnel.log 2>&1 & pid=$!\n"
-    #         % ssh_backtunnel_command
-    #     )
-    #     bash_script_str += "echo $pid\n"
-
-    #     run_script = "/tmp/{}_ssh_backtunnel_run.sh".format(self.user.name)
-    #     with open(run_script, "w") as f:
-    #         f.write(bash_script_str)
-    #     if not os.path.isfile(run_script):
-    #         raise Exception("The file " + run_script + "was not created.")
-    #     else:
-    #         with open(run_script, "r") as f:
-    #             self.log.debug(run_script + " was written as:\n" + f.read())
-
-    #     async with asyncssh.connect(
-    #         self.remote_host, username=username, client_keys=[(k, c)], known_hosts=None
-    #     ) as conn:
-    #         result = await conn.run("bash -s", stdin=run_script)
-    #         stdout = result.stdout
-    #         _ = result.stderr
-    #         retcode = result.exit_status
-
-    #     self.log.debug("ssh_backtunnel status={}".format(retcode))
-    #     if stdout != b"":
-    #         _ = int(stdout)
-    #     else:
-    #         return -1
-
-    #     return True
+        launched = self.launch_detach_process(run_script)
+        if not launched:
+            raise Exception("Failed to execute: {}".format(run_script))
+        return True
 
     # FIXME add docstring
     async def exec_notebook(self, command):
@@ -475,9 +474,11 @@ class SSHSpawner(Spawner):
         public_key_file = os.path.basename(paths["public_key_file"])
 
         private_key_path = os.path.join(
-            self.ssh_backtunnel_client_path, private_key_file
+            self.ssh_forward_tunnel_client_path, private_key_file
         )
-        public_key_path = os.path.join(self.ssh_backtunnel_client_path, public_key_file)
+        public_key_path = os.path.join(
+            self.ssh_forward_tunnel_client_path, public_key_file
+        )
 
         return {
             "private_key_path": private_key_path,
