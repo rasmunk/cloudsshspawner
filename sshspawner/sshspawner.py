@@ -64,9 +64,9 @@ class SSHSpawner(Spawner):
         config=True,
     )
 
-    hub_api_port = Unicode("", help=dedent(), config=True)
+    hub_api_port = Unicode("", help=dedent(""), config=True)
 
-    hub_api_interface = Unicode("", help=dedent(), config=True)
+    hub_api_interface = Unicode("", help=dedent(""), config=True)
 
     hub_activity_url = Unicode(
         "",
