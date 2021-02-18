@@ -245,8 +245,8 @@ class SSHSpawner(Spawner):
         remote_cmd = " ".join(cmd)
 
         # prepare the ssh_backtunnel
-        # ssh_started = await self.start_ssh_backtunnel()
-        # self.log.debug("Started SSH Backtunnel: {}".format(ssh_started))
+        forward_stated = await self.start_ssh_remote_forward_session()
+        self.log.debug("Started SSH Remote Forward: {}".format(forward_stated))
 
         self.pid = await self.exec_notebook(remote_cmd)
 
@@ -381,7 +381,7 @@ class SSHSpawner(Spawner):
             with open(run_script, "r") as f:
                 self.log.debug(run_script + " was written as:\n" + f.read())
 
-        launched = self.launch_detach_process(run_script)
+        launched = await self.launch_detach_process(run_script)
         if not launched:
             raise Exception("Failed to execute: {}".format(run_script))
         return True
