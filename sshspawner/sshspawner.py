@@ -358,7 +358,7 @@ class SSHSpawner(Spawner):
             self.hub_api_port,
             self.hub.port,
             self.hub.ip,
-            self.hub_port,
+            self.hub.port,
             self.user.name,
             self.remote_host,
             self.ssh_forward_credentials_paths["private_key_file"],
