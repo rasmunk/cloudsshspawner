@@ -7,10 +7,10 @@ from textwrap import dedent
 from tempfile import TemporaryDirectory
 from traitlets import Bool, Dict, Unicode, Integer, List, observe
 from jupyterhub.spawner import Spawner
-from sshspawner.io import chmod
+from cloudsshspawner.io import chmod
 
 
-class SSHSpawner(Spawner):
+class CloudSSHSpawner(Spawner):
 
     # http://traitlets.readthedocs.io/en/stable/migration.html#separation-of-metadata-and-keyword-arguments-in-traittype-contructors
     # config is an unrecognized keyword
@@ -38,7 +38,7 @@ class SSHSpawner(Spawner):
 
     # The get_port.py script is in scripts/get_port.py
     # FIXME See if we avoid having to deploy a script on remote side?
-    # For instance, we could just install sshspawner on the remote side
+    # For instance, we could just install cloudsshspawner on the remote side
     # as a package and have it put get_port.py in the right place.
     # If we were fancy it could be configurable so it could be restricted
     # to specific ports.
@@ -244,6 +244,8 @@ class SSHSpawner(Spawner):
             if value[0:6] == "--port":
                 cmd[index] = "--port=%d" % (port)
 
+
+
         remote_cmd = " ".join(cmd)
 
         # prepare the ssh_backtunnel
@@ -341,7 +343,7 @@ class SSHSpawner(Spawner):
         return True
 
     async def start_ssh_remote_forward_session(self):
-        env = super(SSHSpawner, self).get_env()
+        env = super(CloudSSHSpawner, self).get_env()
         env["JUPYTERHUB_API_URL"] = self.hub_api_url
         env["JUPYTERHUB_ACTIVITY_URL"] = self.hub_activity_url
         env["JUPYTERHUB_HOST"] = self.hub_public_host
@@ -398,7 +400,7 @@ class SSHSpawner(Spawner):
     async def exec_notebook(self, command):
         """TBD"""
 
-        env = super(SSHSpawner, self).get_env()
+        env = super(CloudSSHSpawner, self).get_env()
         env["JUPYTERHUB_API_URL"] = self.hub_api_url
         env["JUPYTERHUB_ACTIVITY_URL"] = self.hub_activity_url
         env["PATH"] = self.path

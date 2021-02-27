@@ -1,9 +1,9 @@
 
 ==========
-sshspawner
+cloudsshspawner
 ==========
 
-The ``sshspawner`` enables JupyterHub to spawn single-user notebook servers on remote hosts over SSH.
+The ``cloudsshspawner`` enables JupyterHub to spawn single-user notebook servers on remote hosts over SSH.
 
 Features
 --------
@@ -23,12 +23,12 @@ Requirements
 Installation
 ------------
 
-The ``sshspawner`` is installed with the following command::
+The ``cloudsshspawner`` is installed with the following command::
 
     pip3 install .
 
 
-Install [scripts/get_port.py](scripts/get_port.py) on remote host and set correct path for `c.SSHSpawner.remote_port_command` in [jupyterhub_config.py](jupyterhub_config.py)
+Install [scripts/get_port.py](scripts/get_port.py) on remote host and set correct path for `c.CloudSSHSpawner.remote_port_command` in [jupyterhub_config.py](jupyterhub_config.py)
 
 Configuration
 -------------
@@ -44,7 +44,7 @@ All code is licensed under the terms of the revised BSD license.
 Credit 
 ------
 
-Based on the reference implementation by the NERSC [SSHSpawner](https://github.com/NERSC/sshspawner)
+Based on the reference implementation by the NERSC [CloudSSHSpawner](https://github.com/NERSC/cloudsshspawner)
 
 Resources
 ---------

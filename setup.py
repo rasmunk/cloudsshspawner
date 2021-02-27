@@ -30,7 +30,7 @@ with open(os.path.join(cur_dir, "version.py")) as f:
 
 long_description = open("README.rst").read()
 setup(
-    name="sshspawner",
+    name="cloudsshspawner",
     version=version_ns["__version__"],
     description="""SSH Spawner: A custom spawner for Jupyterhub to spawn
                    notebooks over SSH""",
@@ -38,7 +38,7 @@ setup(
     author="Rasmus Munk",
     author_email="munk1@live.dk",
     packages=find_packages(),
-    url="https://github.com/rasmunk/sshspawner.git",
+    url="https://github.com/rasmunk/cloudsshspawner.git",
     license="BSD",
     platforms="Linux, Mac OS X",
     keywords=["Interactive", "Interpreter", "Shell", "Web", "JupyterHub", "Spawner"],
